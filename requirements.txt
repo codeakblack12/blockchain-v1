@@ -1,0 +1,2 @@
+ecdsa>=0.19
+pycryptodome>=4.10
