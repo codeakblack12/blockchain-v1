@@ -3,6 +3,7 @@ import json
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 
+@dataclass
 class Block:
     index: int
     prev_hash: str
@@ -26,7 +27,8 @@ class Block:
     # ============================================================================
     def to_dict(self) -> dict:
         return asdict(self)
-    
+
+    @classmethod
     def from_dict(cls, d: dict) -> "Block":
         return cls(
             index=int(d["index"]),

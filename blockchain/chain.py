@@ -8,6 +8,7 @@ class Blockchain:
         self.blocks: list[Block] = [GENESIS]
         self.lock = threading.RLock()
 
+    @property
     def tip(self) -> Block:
         return self.blocks[-1]
 
