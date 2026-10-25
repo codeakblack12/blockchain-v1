@@ -1,8 +1,24 @@
 import argparse
 import json
 import sys
+
+from blockchain.node import Node
 from blockchain.wallet import load_or_create_identity, matches_prefix, normalize_prefix
 
+HELP = """Commands:
+  msg <text>   add a pending message (local to this node)
+  mine         mine one block with pending messages, then broadcast
+  chain        print the local chain
+  status       print height / tip / pending messages
+  peers        list configured peers
+  help         show this help
+  exit         stop the node"""
+
+def print_chain(node: Node):
+    for b in node.chain.blocks:
+        print(f"  #{b.index} hash={b.hash[:20]}... prev={b.prev_hash[:12]}... "
+              f"nonce={b.nonce} miner={b.miner_address} data={b.data}")
+        
 def main():
     ap = argparse.ArgumentParser(description="ECE 496C/519C Assignment 1 node")
     ap.add_argument("--config", required=True, help="node config JSON (node1.json ...)")
@@ -24,6 +40,44 @@ def main():
     else:
         sys.exit("[-] Prefix Status  : NO MATCH")
     print("[+] Node Identity initialized successfully.")
+
+    # ---------- Part 2: node
+    node = Node(config, identity, args.difficulty)
+
+    try:
+        httpd = node.serve()
+    except OSError as e:
+        sys.exit(f"[-] Could not bind port {config['port']}: {e}")
+    print(f"[+] Difficulty: {args.difficulty}  |  type 'help' for commands")
+
+    prompt = f"{node.node_id}> "
+    while True:
+        try:
+            line = input(prompt).strip()
+        except (EOFError, KeyboardInterrupt):
+            break
+        if not line:
+            continue
+        cmd, _, rest = line.partition(" ")
+        cmd = cmd.lower()
+        if cmd == "msg":
+            node.add_message(rest) if rest.strip() else print("usage: msg <text>")
+        elif cmd == "mine":
+            node.mine()
+        elif cmd == "chain":
+            print_chain(node)
+        elif cmd == "status":
+            print(json.dumps(node.status(), indent=2))
+        elif cmd == "peers":
+            print("\n".join(node.peers))
+        elif cmd == "help":
+            print(HELP)
+        elif cmd in ("exit", "quit"):
+            break
+        else:
+            print(f"unknown command {cmd!r} - type 'help'")
+    httpd.shutdown()
+    print("[+] Node stopped.")
 
 if __name__ == "__main__":
     main()
